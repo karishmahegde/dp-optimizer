@@ -1,79 +1,86 @@
-# Differentially Private Optimizer <br> \[CSCI8960: Privacy Preserving Data Analysis\]
+# Differentially-Private Image Classifier  <br> \[CSCI8960: Privacy Preserving Data Analysis\]
 
-## Description
-The goal of this project is to develop a highly accurate, efficient, and differentially private optimizer. The objectives include surpassing the current state-of-the-art accuracy of 70.7% (with ε = 3.0, δ = 10⁻⁵), ensuring the optimizer fulfills (ε, δ)-differential privacy (DP), and achieving scalability comparable to DP-SGD. Additionally, a key focus is on the reproducibility of results, with the final report highlighting the project’s contributions.
+## Abstract
+This project aims to develop a highly efficient, scalable, and differentially private
+optimizer. The main objective is to compete with the current state-of-the-art
+accuracy of 70.7% while maintaining (ϵ = 3.0,δ = 10−5) differential privacy
+guarantees. The project focuses on optimizing privacy-preserving techniques such
+as Differentially Private Stochastic Gradient Descent (DP-SGD) using techniques like Adaptive
+Gradient Clipping, Weight Standardization and dynamic learning rate adjustment to improve both accuracy and
+computational performance. With a focus on reproducibility, the outcomes are
+compared to privacy and accuracy requirements.
 
- **Current Stage: Project Proposal** 
+## 🔶 Best Accuracy
+62.39%
 
+## 🔶 Introduction
+As organizations increasingly employ machine learning models, ensuring the privacy of individuals’
+data used to train these models has become essential. Differential privacy (DP) offers a robust solution
+to this challenge that ensures an adversary cannot predict data or the presence of an individual in
+training data from released models. The central goal of this project is to develop a differentially
+private optimizer that balances accuracy and privacy, addressing the limitations of current approaches.
+The project focuses on developing models leveraging the DP-SGD (Differentially Private Stochastic
+Gradient Descent) method through Opacus. As DP-SGD presents trade-offs between accuracy and
+privacy, this work seeks to refine DP-SGD by introducing key optimizations, including Adaptive
+Gradient Clipping, Weight Standardization and Adaptive Gradient Clipping. The project uses ResNet-20 and WRN-16-4 (Wide
+Residual Networks) architectures for image classification on the CIFAR-10 dataset. Both models have
+been modified to incorporate the proposed privacy-preserving techniques, with a focus on achieving
+high accuracy while maintaining privacy budgets.
 
-## 🔶 Methodology
+## 🔶 Models
+### 🔷 ResNet-20: The Initial Model
+The concept of Residual Learning was first presented in the 2015 landmark paper by K. He et al.[1]
+to address the vanishing gradient problem that occurs when very deep networks perform worse than
+their shallower counterparts. 
 
-### 🔹 (Non-Private) Optimizers to Try
-As part of this project, we aim to work with three optimizers, namely Stochastic Gradient Descent (SGD), Adam, and RMSprop. Initial studies on these optimizers have shown advantages in terms of adaptability, simplicity, and stability in training:
+The main concept is to reframe deep network layers as learning residual functions with respect
+to the layer inputs instead than learning unreferenced functions directly. This is accomplished
+through "shortcuts" between each layer, in which the input of a block is kept and added to the
+transformation’s output inside the block. As the network develops deeper, this aids in the retention of
+crucial information.
+ResNet-20 is a variation of the Residual Network (ResNet) architecture that belongs to a family of
+models including more complex models like ResNet-50 and ResNet-101, and is especially made for
+jobs like image classification. Our primary intuition to begin with ResNet-20 as a baseline model was due to the popularity of
+ResNets in image classification tasks. The 20 layer model is most feasible within our resource
+limits, while still leveraging the advantages of ResNet architectures. 
 
-- **Adam**: Combines momentum and adaptive learning rates, making it robust across many domains.
-- **RMSprop**: Appropriately scales the learning rate to prevent vanishing/exploding gradients.
-- **SGD**: Simple and widely used in neural network training, but may require tuning of learning rates.
+### 🔷 WRN-16-4
+Wide Residual Networks (Wide-ResNet/WRN) are a variation of ResNets in which the residual
+networks’ width is increased and their depth is decreased with the help of Wide residual blocks.
+The idea was first proposed by S. Zagoruyko et al.[9] to combat network training issues to increase
+accuracy. WRNs have fewer layers but more parameters per layer since they trade off extreme depth for greater width. Compared to highly deep ResNets, this is computationally more efficient and
+frequently results in better performance.
 
-### 🔹 Main Components of the Optimizer
-The DP optimizer will be developed based on the following components:
+The WRN-16-4 is not directly available as a pre-built model in PyTorch’s standard torchvision
+models library. PyTorch offers WRN-50-2 and WRN-101-2 but were too large for processing. Hence,
+we implemented WRN-16-4 by modifying the existing ResNet architecture. We brought over the
+Group normalization, adaptive gradient clipping and weight standardization implementations from
+the ResNet-20 model.
 
-- **Gradient Clipping**: To ensure privacy, we will clip gradients to limit the influence of any single data point.
-- **Error-Feedback Mechanism**: This mechanism improves convergence by tackling the noise introduced by gradient clipping.
-- **Noise Addition**: The optimizer should satisfy (ε, δ)-differential privacy, so noise will be added to gradients.
+## 🔶 Results & Training Details
 
-### 🔹 Rationale Behind Algorithm Choices
-The optimizers we are testing offer performance and adaptability while better handling noise and efficient learning. With modifications appropriate for privacy, the DP optimizer is expected to match or outperform DP-SGD.
+The models will be developed using PyTorch and the differential privacy library [Opacus](https://ai.meta.com/blog/introducing-opacus-a-high-speed-library-for-training-pytorch-models-with-differential-privacy/). It was trained and tested on Google Colaboratory using Tesla T4 GPU.
 
-### 🔹 Non-Private Algorithm Steps
+### 🔷 Optimizer Details
 
-#### Notations:
-- **θ**: Vector representing the weights (parameters) of the model
-- **g<sub>i</sub>**: Gradient of the loss function with respect to θ<sub>i</sub> (i.e., ∂L/∂θ<sub>i</sub>)
-- **η**: Learning rate
-- **λ**: Weight decay coefficient
-- **μ**: Momentum coefficient
-- **m<sub>i</sub>**: Momentum buffer for each parameter θ<sub>i</sub>
-- **d**: Damping factor for momentum
+The Differentially Private PyTorch library that is being used favours gradient
+calculation by the Stochastic Gradient Descent (SGD) method. In each iteration, after computing the
+gradient in the back propagation, some noise is added to the value. This masks the original data from
+the model and avoids memorization of examples. This is especially important for outliers, that are at
+a higher chance of being leaked, as they have a greater influence on gradient calculation.
 
-#### Steps:
-1. **L2 Regularization**:  
-   Regularization helps prevent overfitting by handling large weight values. The gradient is adjusted as follows:  
-   > g<sub>i</sub> ← g<sub>i</sub> + λθ<sub>i</sub>
+Taking into account the computation, Opacus handles per-sample gradient by implementing an
+effective technique. This involves the algorithm re-uses the already computed gradients and further
+processes them to obtain per-sample gradients In a traditional ML model, the per-sample gradient
+would require O(mnp2) operations, whereas Opacus’s technique does this with O(mnp) operations[11].
+It involves computing matrices Z (pre-activation) and H (activation) for the minibatch, the algorithm
+computes the per-sample gradient norms without to re-running the backpropagation multiple times.
 
-   <br> This term pushes the weights θ<sub>i</sub> toward zero, promoting smaller parameter values.
-
-2. **Momentum**:  
-   Momentum helps accelerate the gradient vectors in the correct direction and dampens oscillations:  
-   > m<sub>i</sub> ← μm<sub>i</sub> + (1− d)g<sub>i</sub> 
-   
-
-   The gradients are replaced by the momentum-adjusted value:  
-   > g<sub>i</sub> ← m<sub>i</sub>
-   
-
-   This effectively smooths the updates by incorporating previous gradient information.
-
-4. **Gradient Descent Parameter Update**:  
-   Once the gradient g<sub>i</sub> has been adjusted for weight decay and momentum, it is used to update the parameters θ<sub>i</sub>:  
-   > θ<sub>i</sub> ← θ<sub>i</sub> − ηg<sub>i</sub>
-
-## 🔶 Experimental Setup
-
-### 🔹 System Description
-The model will be developed using PyTorch and the differential privacy library [Opacus](https://ai.meta.com/blog/introducing-opacus-a-high-speed-library-for-training-pytorch-models-with-differential-privacy/). It will be tested on PyTorch’s CIFAR-10 and CIFAR-100 datasets. The model will be trained on the university’s server equipped with GPUs (csci-cuda.cs.uga.edu) to handle the computational load.
-
-### 🔹 Parameters to Measure
-The performance of the model will be evaluated based on the following parameters:
-- **Training loss and accuracy**
-- **Differential privacy bounds (ε, δ)**
-- **Model generalization (test accuracy)**
-
-### 🔹 Design of Experiments
-To demonstrate the improvement in the developed model, we will compare the convergence rate, ultimate accuracy, and privacy budget usage of DP-SGD and DiceSGD.
-
-## 🔶 References
-1. Jian Du, Song Li, Xiangyi Chen, Siheng Chen, and Mingyi Hong. [*Dynamic Differential-Privacy Preserving SGD.* arXiv preprint arXiv:2111.00173 (2022).](https://arxiv.org/abs/2111.00173)
-
-2. Meta. [*Introducing Opacus: A high-speed library for training PyTorch models with differential privacy.*](https://ai.meta.com/blog/introducing-opacus-a-high-speed-library-for-training-pytorch-models-with-differential-privacy/) August 2020.
-
+The hyperparameter values for the setup obtaining best accuracy are as follows:
+- **Privacy Budget (ϵ):** 3.0  
+- **Privacy Loss Probability (δ):** 1 × 10⁻⁵  
+- **Batch Size:**  
+  - **Logical Batch Size:** 4096  
+  - **Physical Batch Size:** 128  
+- **Learning Rate:** 1 × 10⁻³
+- **Epochs:** 25-50
